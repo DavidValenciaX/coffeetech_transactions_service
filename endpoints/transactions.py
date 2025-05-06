@@ -23,20 +23,20 @@ bogota_tz = pytz.timezone("America/Bogota")
 # Pydantic Models for Transactions Endpoints
 
 class CreateTransactionRequest(BaseModel):
-    plot_id: int = Field(..., description="ID del lote asociado a la transacción")
+    entity_type: str = Field(..., description="Tipo de entidad asociada a la transacción (ej. 'plot', 'farm')")
+    entity_id: int = Field(..., description="ID de la entidad asociada a la transacción")
     transaction_type_name: str = Field(..., description="Nombre del tipo de transacción")
     transaction_category_name: str = Field(..., description="Nombre de la categoría de la transacción")
-
-    description: Optional[str] = Field(None, max_length=50, description="Descripción de la transacción (máximo 50 caracteres)")
-    value: int = Field(..., description="Valor de la transacción")
+    description: Optional[str] = Field(None, max_length=255, description="Descripción de la transacción (máximo 255 caracteres)")
+    value: float = Field(..., description="Valor de la transacción")
     transaction_date: date = Field(..., description="Fecha de la transacción")
 
 class UpdateTransactionRequest(BaseModel):
     transaction_id: int = Field(..., description="ID de la transacción a actualizar")
     transaction_type_name: Optional[str] = Field(None, description="Nuevo nombre del tipo de transacción")
     transaction_category_name: Optional[str] = Field(None, description="Nuevo nombre de la categoría de la transacción")
-    description: Optional[str] = Field(None, max_length=50, description="Nueva descripción de la transacción (máximo 50 caracteres)")
-    value: Optional[int] = Field(None, description="Nuevo valor de la transacción")
+    description: Optional[str] = Field(None, max_length=255, description="Nueva descripción de la transacción (máximo 255 caracteres)")
+    value: Optional[float] = Field(None, description="Nuevo valor de la transacción")
     transaction_date: Optional[date] = Field(None, description="Nueva fecha de la transacción")
 
 class DeleteTransactionRequest(BaseModel):
@@ -44,12 +44,12 @@ class DeleteTransactionRequest(BaseModel):
 
 class TransactionResponse(BaseModel):
     transaction_id: int
-    plot_id: int
+    entity_type: str
+    entity_id: int
     transaction_type_name: str
     transaction_category_name: str
-
     description: Optional[str]
-    value: int
+    value: float
     transaction_date: date
     transaction_state: str
 
