@@ -1,6 +1,7 @@
 from models.models import (
-    TransactionCategories, Transactions, TransactionTypes, TransactionStates
+    TransactionCategories, Transactions, TransactionTypes
 )
+from adapters.user_client import verify_session_token
 from utils.response import session_token_invalid_response, create_response
 from utils.state import get_state
 from fastapi.encoders import jsonable_encoder
@@ -16,7 +17,7 @@ def create_transaction_use_case(request, session_token, db):
         return create_response("error", "Token de sesión faltante", status_code=401)
     
     # 2. Verificar el token de sesión
-    user = verify_session_token(session_token, db)
+    user = verify_session_token(session_token)
     if not user:
         logger.warning("Token de sesión inválido o usuario no encontrado")
         return session_token_invalid_response()

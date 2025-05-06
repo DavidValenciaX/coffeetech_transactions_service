@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from models.models import Transactions
-from utils.security import verify_session_token
+from adapters.user_client import verify_session_token
 from dataBase import get_db_session
 from typing import List, Optional
 from utils.response import create_response, session_token_invalid_response
@@ -95,7 +95,7 @@ def financial_report(
         return create_response("error", "Token de sesión faltante", status_code=401)
     
     # 2. Verificar el token de sesión
-    user = verify_session_token(session_token, db)
+    user = verify_session_token(session_token)
     if not user:
         logger.warning("Token de sesión inválido o usuario no encontrado")
         return session_token_invalid_response()

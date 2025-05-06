@@ -3,6 +3,7 @@ from utils.state import get_state
 from models.models import (
     Transactions, TransactionTypes, TransactionCategories, TransactionStates
 )
+from adapters.user_client import verify_session_token
 import logging
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ def list_transactions_use_case(plot_id, session_token, db):
         return create_response("error", "Token de sesión faltante", status_code=401)
     
     # 2. Verificar el token de sesión
-    user = verify_session_token(session_token, db)
+    user = verify_session_token(session_token)
     if not user:
         logger.warning("Token de sesión inválido o usuario no encontrado")
         return session_token_invalid_response()
