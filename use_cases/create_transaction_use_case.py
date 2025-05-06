@@ -3,7 +3,7 @@ from models.models import (
 )
 from adapters.user_client import verify_session_token
 from utils.response import session_token_invalid_response, create_response
-from utils.state import get_state
+from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
 from endpoints.transactions import TransactionResponse
 import logging
@@ -83,7 +83,7 @@ def create_transaction_use_case(request, session_token, db):
         return create_response("error", "La categoría de transacción especificada no existe para el tipo de transacción proporcionado", status_code=400)
     
     # 9. Obtener el estado 'Activo' para Transactions
-    active_transaction_state = get_state(db, "Activo", "Transactions")
+    active_transaction_state = get_transaction_state(db, "Activo")
     if not active_transaction_state:
         logger.error("Estado 'Activo' para Transactions no encontrado")
         return create_response("error", "Estado 'Activo' para Transactions no encontrado", status_code=500)

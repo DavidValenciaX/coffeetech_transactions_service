@@ -2,7 +2,7 @@ from models.models import (
     Transactions, TransactionTypes, TransactionCategories, TransactionStates
 )
 from utils.response import session_token_invalid_response, create_response
-from utils.state import get_state
+from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
 from endpoints.transactions import TransactionResponse
 from adapters.user_client import verify_session_token
@@ -29,7 +29,7 @@ def edit_transaction_use_case(request, session_token, db):
         return create_response("error", "La transacción especificada no existe", status_code=404)
     
     # 4. Verificar que la transacción no esté inactiva
-    inactive_transaction_state = get_state(db, "Inactivo", "Transactions")
+    inactive_transaction_state = get_transaction_state(db, "Inactivo")
     if not inactive_transaction_state:
         logger.error("Estado 'Inactivo' para Transactions no encontrado")
         return create_response("error", "Estado 'Inactivo' para Transactions no encontrado", status_code=500)

@@ -1,6 +1,6 @@
 from models.models import Transactions
 from utils.response import create_response, session_token_invalid_response
-from utils.state import get_state
+from utils.state import get_transaction_state
 from adapters.user_client import verify_session_token
 import logging
 
@@ -25,7 +25,7 @@ def delete_transaction_use_case(request, session_token, db):
         return create_response("error", "La transacción especificada no existe", status_code=404)
     
     # 4. Verificar que la transacción no esté ya inactiva
-    inactive_transaction_state = get_state(db, "Inactivo", "Transactions")
+    inactive_transaction_state = get_transaction_state(db, "Inactivo")
     if not inactive_transaction_state:
         logger.error("Estado 'Inactivo' para Transactions no encontrado")
         return create_response("error", "Estado 'Inactivo' para Transactions no encontrado", status_code=500)

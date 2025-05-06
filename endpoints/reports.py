@@ -5,7 +5,7 @@ from adapters.user_client import verify_session_token
 from dataBase import get_db_session
 from typing import List, Optional
 from utils.response import create_response, session_token_invalid_response
-from utils.state import get_state
+from utils.state import get_state, get_transaction_state
 from pydantic import BaseModel, Field, conlist
 from datetime import date
 from fastapi.encoders import jsonable_encoder
@@ -146,7 +146,7 @@ def financial_report(
             return create_response("error", "No tienes permiso para ver reportes financieros", status_code=403)
         
         # 5. Obtener el estado 'Activo' para Transactions
-        active_transaction_state = get_state(db, "Activo", "Transactions")
+        active_transaction_state = get_transaction_state(db, "Activo")
         if not active_transaction_state:
             logger.error("Estado 'Activo' para Transactions no encontrado")
             return create_response("error", "Estado 'Activo' para Transactions no encontrado", status_code=500)

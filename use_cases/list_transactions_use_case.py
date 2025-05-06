@@ -1,5 +1,5 @@
 from utils.response import create_response, session_token_invalid_response
-from utils.state import get_state
+from utils.state import get_transaction_state
 from models.models import (
     Transactions, TransactionTypes, TransactionCategories, TransactionStates
 )
@@ -66,7 +66,7 @@ def list_transactions_use_case(plot_id, session_token, db):
         return create_response("error", "No tienes permiso para ver las transacciones en esta finca", status_code=403)
     
     # 6. Obtener el estado "Inactivo" para Transactions
-    inactive_transaction_state = get_state(db, "Inactivo", "Transactions")
+    inactive_transaction_state = get_transaction_state(db, "Inactivo")
     if not inactive_transaction_state:
         logger.error("Estado 'Inactivo' para Transactions no encontrado")
         return create_response("error", "Estado 'Inactivo' para Transactions no encontrado", status_code=500)
