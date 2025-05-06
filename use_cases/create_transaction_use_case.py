@@ -1,13 +1,10 @@
 from models.models import (
-    TransactionCategories, Transactions, TransactionTypes, TransactionStates,
-    UserRoleFarm, RolePermission, Permissions, Plots
+    TransactionCategories, Transactions, TransactionTypes, TransactionStates
 )
-from utils.security import verify_session_token
 from utils.response import session_token_invalid_response, create_response
 from utils.state import get_state
 from fastapi.encoders import jsonable_encoder
-from . import logger  # Usa el logger del módulo principal si es necesario, o crea uno aquí
-from endpoints.transactions import TransactionResponse  # O mueve el modelo a un módulo común si prefieres
+from endpoints.transactions import TransactionResponse
 
 def create_transaction_use_case(request, session_token, db):
     # 1. Verificar que el session_token esté presente

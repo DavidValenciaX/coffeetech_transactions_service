@@ -1,10 +1,8 @@
 from utils.response import create_response, session_token_invalid_response
 from utils.state import get_state
 from models.models import (
-    Transactions, TransactionTypes, TransactionCategories, TransactionStates,
-    Plots, Farms, UserRoleFarm, RolePermission, Permissions
+    Transactions, TransactionTypes, TransactionCategories, TransactionStates
 )
-from utils.security import verify_session_token
 
 def list_transactions_use_case(plot_id, session_token, db):
     import logging
