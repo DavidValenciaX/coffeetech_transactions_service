@@ -3,10 +3,11 @@ from utils.state import get_state
 from models.models import (
     Transactions, TransactionTypes, TransactionCategories, TransactionStates
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 def list_transactions_use_case(plot_id, session_token, db):
-    import logging
-    logger = logging.getLogger(__name__)
 
     # 1. Verificar que el session_token esté presente
     if not session_token:

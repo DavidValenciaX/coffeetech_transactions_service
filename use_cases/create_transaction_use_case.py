@@ -5,6 +5,9 @@ from utils.response import session_token_invalid_response, create_response
 from utils.state import get_state
 from fastapi.encoders import jsonable_encoder
 from endpoints.transactions import TransactionResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_transaction_use_case(request, session_token, db):
     # 1. Verificar que el session_token esté presente
