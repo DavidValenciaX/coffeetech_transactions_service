@@ -11,6 +11,7 @@ from datetime import date
 from fastapi.encoders import jsonable_encoder
 from collections import defaultdict
 import logging
+from adapters.farm_client import get_user_role_farm_state_by_name
 
 router = APIRouter()
 
@@ -120,15 +121,15 @@ def financial_report(
             return create_response("error", "La finca asociada a los lotes no existe", status_code=404)
         
         # 4. Verificar que el usuario esté asociado con esta finca y tenga permisos
-        active_urf_state = get_state(db, "Activo", "user_role_farm")
-        if not active_urf_state:
+        active_urf_state = get_user_role_farm_state_by_name("Activo")
+        if not active_urf_state or not active_urf_state.get("user_role_farm_state_id"):
             logger.error("Estado 'Activo' para user_role_farm no encontrado")
             return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=500)
         
         user_role_farm = db.query(UserRoleFarm).filter(
             UserRoleFarm.user_id == user.user_id,
             UserRoleFarm.farm_id == farm_id,
-            UserRoleFarm.user_role_farm_state_id == active_urf_state.user_role_farm_state_id
+            UserRoleFarm.user_role_farm_state_id == active_urf_state["user_role_farm_state_id"]
         ).first()
         
         if not user_role_farm:

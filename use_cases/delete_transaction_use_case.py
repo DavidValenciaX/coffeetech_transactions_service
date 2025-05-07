@@ -2,6 +2,7 @@ from models.models import Transactions
 from utils.response import create_response, session_token_invalid_response
 from utils.state import get_transaction_state
 from adapters.user_client import verify_session_token
+from adapters.farm_client import get_user_role_farm_state_by_name
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,15 +36,15 @@ def delete_transaction_use_case(request, session_token, db):
         return create_response("error", "La transacción ya está eliminada", status_code=400)
     
     # 5. Verificar que el usuario esté asociado con la finca del lote de la transacción
-    active_urf_state = get_state(db, "Activo", "user_role_farm")
-    if not active_urf_state:
+    active_urf_state = get_user_role_farm_state_by_name("Activo")
+    if not active_urf_state or not active_urf_state.get("user_role_farm_state_id"):
         logger.error("Estado 'Activo' para user_role_farm no encontrado")
         return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=400)
     
     user_role_farm = db.query(UserRoleFarm).filter(
         UserRoleFarm.user_id == user.user_id,
         UserRoleFarm.farm_id == transaction.plot.farm_id,
-        UserRoleFarm.user_role_farm_state_id == active_urf_state.user_role_farm_state_id
+        UserRoleFarm.user_role_farm_state_id == active_urf_state["user_role_farm_state_id"]
     ).first()
     
     if not user_role_farm:
