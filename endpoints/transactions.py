@@ -29,8 +29,7 @@ def create_transaction(
     """
     Crear una nueva transacción para un lote en una finca.
 
-    - **entity_type**: Tipo de entidad asociada a la transacción (ej. 'plot', 'farm')
-    - **entity_id**: ID de la entidad asociada a la transacción
+    - **plot_id**: ID del lote asociado a la transacción
     - **transaction_category_id**: ID de la categoría de la transacción
     - **value**: Valor monetario de la transacción
     - **description**: Descripción detallada de la transacción

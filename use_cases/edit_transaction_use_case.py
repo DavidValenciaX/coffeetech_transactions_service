@@ -46,20 +46,12 @@ def edit_transaction_use_case(request, session_token, db):
         logger.error("Estado 'Activo' para user_role_farm no encontrado")
         return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=400)
     
-    # Determinar el farm_id según el tipo de entidad de la transacción
-    farm_id = None
-    if transaction.entity_type == "farm":
-        farm_id = transaction.entity_id
-    elif transaction.entity_type == "plot":
-        # Verificar si el lote existe y obtener su farm_id
-        plot_info = verify_plot(transaction.entity_id)
-        if not plot_info:
-            logger.warning(f"El lote con ID {transaction.entity_id} no existe o no está activo")
-            return create_response("error", "El lote asociado a esta transacción no existe o no está activo", status_code=404)
-        farm_id = plot_info.farm_id
-    else:
-        logger.error(f"Tipo de entidad no soportado: {transaction.entity_type}")
-        return create_response("error", "Tipo de entidad no soportado", status_code=400)
+    # Determinar el farm_id según el lote de la transacción
+    plot_info = verify_plot(transaction.plot_id)
+    if not plot_info:
+        logger.warning(f"El lote con ID {transaction.plot_id} no existe o no está activo")
+        return create_response("error", "El lote asociado a esta transacción no existe o no está activo", status_code=404)
+    farm_id = plot_info.farm_id
     
     # Utilizar el cliente del servicio de fincas para obtener la relación usuario-finca
     user_role_farm = get_user_role_farm(user.user_id, farm_id)
@@ -122,8 +114,7 @@ def edit_transaction_use_case(request, session_token, db):
         
         response_data = TransactionResponse(
             transaction_id=transaction.transaction_id,
-            entity_type=transaction.entity_type,
-            entity_id=transaction.entity_id,
+            plot_id=transaction.plot_id,
             transaction_type_name=txn_type_name,
             transaction_category_name=txn_category_name,
             description=transaction.description,

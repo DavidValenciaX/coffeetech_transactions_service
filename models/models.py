@@ -29,8 +29,7 @@ class Transactions(Base):
     __tablename__ = 'transactions'
     transaction_id = Column(Integer, primary_key=True)
     description = Column(String(255), nullable=True)
-    entity_type = Column(String(50), nullable=False)
-    entity_id = Column(Integer, nullable=False)
+    plot_id = Column(Integer, nullable=False)
     transaction_date = Column(Date, nullable=False)
     transaction_state_id = Column(Integer, ForeignKey('transaction_states.transaction_state_id'), nullable=False)
     value = Column(Numeric(15, 2), nullable=False)

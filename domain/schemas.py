@@ -3,8 +3,7 @@ from typing import Optional, List
 from datetime import date
 
 class CreateTransactionRequest(BaseModel):
-    entity_type: str = Field(..., description="Tipo de entidad asociada a la transacción (ej. 'plot', 'farm')")
-    entity_id: int = Field(..., description="ID de la entidad asociada a la transacción")
+    plot_id: int = Field(..., description="ID del lote asociado a la transacción")
     transaction_category_id: int = Field(..., description="ID de la categoría de la transacción")
     description: Optional[str] = Field(None, max_length=255, description="Descripción de la transacción (máximo 255 caracteres)")
     value: float = Field(..., description="Valor de la transacción")
@@ -22,8 +21,7 @@ class DeleteTransactionRequest(BaseModel):
 
 class TransactionResponse(BaseModel):
     transaction_id: int
-    entity_type: str
-    entity_id: int
+    plot_id: int
     transaction_type_name: str
     transaction_category_name: str
     description: Optional[str]

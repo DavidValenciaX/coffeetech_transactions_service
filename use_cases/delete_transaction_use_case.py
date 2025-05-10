@@ -35,20 +35,12 @@ def delete_transaction_use_case(request, session_token, db):
         logger.warning(f"La transacción con ID {request.transaction_id} ya está inactiva")
         return create_response("error", "La transacción ya está eliminada", status_code=400)
     
-    # 5. Determinar el farm_id según el tipo de entidad de la transacción
-    farm_id = None
-    if transaction.entity_type == "farm":
-        farm_id = transaction.entity_id
-    elif transaction.entity_type == "plot":
-        # Verificar si el lote existe y obtener su farm_id
-        plot_info = verify_plot(transaction.entity_id)
-        if not plot_info:
-            logger.warning(f"El lote con ID {transaction.entity_id} no existe o no está activo")
-            return create_response("error", "El lote asociado a esta transacción no existe o no está activo", status_code=404)
-        farm_id = plot_info.farm_id
-    else:
-        logger.error(f"Tipo de entidad no soportado: {transaction.entity_type}")
-        return create_response("error", "Tipo de entidad no soportado", status_code=400)
+    # 5. Determinar el farm_id según el lote de la transacción
+    plot_info = verify_plot(transaction.plot_id)
+    if not plot_info:
+        logger.warning(f"El lote con ID {transaction.plot_id} no existe o no está activo")
+        return create_response("error", "El lote asociado a esta transacción no existe o no está activo", status_code=404)
+    farm_id = plot_info.farm_id
     
     # 6. Verificar que el usuario esté asociado con la finca
     user_role_farm = get_user_role_farm(user.user_id, farm_id)

@@ -51,8 +51,7 @@ def list_transactions_use_case(plot_id, session_token, db):
     
     # 8. Consultar las transacciones del lote que no están inactivas
     transactions = db.query(Transactions).filter(
-        Transactions.entity_type == "plot",
-        Transactions.entity_id == plot_id,
+        Transactions.plot_id == plot_id,
         Transactions.transaction_state_id != inactive_transaction_state.transaction_state_id
     ).all()
     
@@ -73,7 +72,7 @@ def list_transactions_use_case(plot_id, session_token, db):
         
         transaction_list.append({
             "transaction_id": txn.transaction_id,
-            "plot_id": txn.entity_id,
+            "plot_id": txn.plot_id,
             "transaction_type_name": txn_type_name,
             "transaction_category_name": txn_category_name,
             "description": txn.description,

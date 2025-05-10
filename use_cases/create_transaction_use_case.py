@@ -29,16 +29,12 @@ def create_transaction_use_case(request, session_token, db):
         logger.error("Estado 'Activo' para user_role_farm no encontrado")
         return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=400)
     
-    # Obtener la relación user_role_farm desde el servicio de fincas
-    farm_id = request.entity_id if request.entity_type == "farm" else None
-    
-    # Si la entidad es un lote, verificar que existe y obtener su farm_id
-    if request.entity_type == "plot":
-        plot = verify_plot(request.entity_id)
-        if not plot:
-            logger.warning(f"El lote con ID {request.entity_id} no existe o no está activo")
-            return create_response("error", "La entidad especificada no existe o no está activa", status_code=404)
-        farm_id = plot.farm_id
+    # Verificar que el lote existe y obtener su farm_id
+    plot = verify_plot(request.plot_id)
+    if not plot:
+        logger.warning(f"El lote con ID {request.plot_id} no existe o no está activo")
+        return create_response("error", "El lote especificado no existe o no está activo", status_code=404)
+    farm_id = plot.farm_id
     
     # Verificar permisos de usuario en la finca
     user_role_farm = get_user_role_farm(user.user_id, farm_id)
@@ -82,8 +78,7 @@ def create_transaction_use_case(request, session_token, db):
     # 9. Crear la transacción
     try:
         new_transaction = Transactions(
-            entity_type=request.entity_type,
-            entity_id=request.entity_id,
+            plot_id=request.plot_id,
             transaction_type_id=transaction_type.transaction_type_id,
             transaction_category_id=transaction_category.transaction_category_id,
             description=request.description,
@@ -100,8 +95,7 @@ def create_transaction_use_case(request, session_token, db):
         
         response_data = TransactionResponse(
             transaction_id=new_transaction.transaction_id,
-            entity_type=new_transaction.entity_type,
-            entity_id=new_transaction.entity_id,
+            plot_id=new_transaction.plot_id,
             transaction_type_name=transaction_type.name,
             transaction_category_name=transaction_category.name,
             description=new_transaction.description,

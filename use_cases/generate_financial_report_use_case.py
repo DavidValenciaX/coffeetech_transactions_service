@@ -71,8 +71,7 @@ def generate_financial_report(request: FinancialReportRequest, user, db):
     
     # 6. Consultar las transacciones de los lotes seleccionados dentro del rango de fechas
     transactions = db.query(Transactions).filter(
-        Transactions.entity_type == "plot",
-        Transactions.entity_id.in_(request.plot_ids),
+        Transactions.plot_id.in_(request.plot_ids),
         Transactions.transaction_date >= request.fechaInicio,
         Transactions.transaction_date <= request.fechaFin,
         Transactions.transaction_state_id == active_transaction_state.transaction_state_id
@@ -120,7 +119,7 @@ def generate_financial_report(request: FinancialReportRequest, user, db):
     
     # Procesar cada transacción
     for txn in transactions:
-        plot_id = txn.entity_id
+        plot_id = txn.plot_id
         if plot_id not in plot_financials:
             logger.warning(f"Transacción asociada a un lote no incluido en el reporte: {plot_id}")
             continue
@@ -205,7 +204,7 @@ def generate_financial_report(request: FinancialReportRequest, user, db):
         
         for txn in transactions:
             try:
-                plot_id = txn.entity_id
+                plot_id = txn.plot_id
                 plot_name = plot_names.get(plot_id, f"Lote #{plot_id}")
                 
                 txn_type = transaction_types.get(txn.transaction_type_id)
