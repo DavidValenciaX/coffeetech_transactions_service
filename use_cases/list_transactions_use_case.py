@@ -3,9 +3,9 @@ from utils.state import get_transaction_state
 from models.models import (
     Transactions, TransactionTypes, TransactionCategories, TransactionStates
 )
-from adapters.user_client import verify_session_token
-# NUEVO: importar el cliente de farm_client
-from adapters.farm_client import get_user_role_farm_state_by_name
+from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
+# Use these clients to get data from other microservices
+from adapters.farm_client import get_user_role_farm_state_by_name, verify_plot, get_user_role_farm
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,63 +23,41 @@ def list_transactions_use_case(plot_id, session_token, db):
         logger.warning("Token de sesión inválido o usuario no encontrado")
         return session_token_invalid_response()
     
-    # 3. Verificar que el lote exista y esté activo
-    active_plot_state = get_state(db, "Activo", "Plots")
-    if not active_plot_state:
-        logger.error("Estado 'Activo' para Plots no encontrado")
-        return create_response("error", "Estado 'Activo' para Plots no encontrado", status_code=400)
-    
-    plot = db.query(Plots).filter(
-        Plots.plot_id == plot_id,
-        Plots.plot_state_id == active_plot_state.plot_state_id
-    ).first()
-    if not plot:
+    # 3. Verificar que el lote exista y esté activo usando el cliente de farms
+    plot_info = verify_plot(plot_id)
+    if not plot_info:
         logger.warning(f"El lote con ID {plot_id} no existe o no está activo")
         return create_response("error", "El lote no existe o no está activo", status_code=404)
     
-    # 4. Verificar que el usuario esté asociado con la finca del lote
-    farm = db.query(Farms).filter(Farms.farm_id == plot.farm_id).first()
-    if not farm:
-        logger.warning("La finca asociada al lote no existe")
-        return create_response("error", "La finca asociada al lote no existe", status_code=404)
+    # 4. Obtener el farm_id del lote
+    farm_id = plot_info.farm_id
     
-    active_urf_state = get_user_role_farm_state_by_name("Activo")
-    if not active_urf_state or not active_urf_state.get("user_role_farm_state_id"):
-        logger.error("Estado 'Activo' para user_role_farm no encontrado")
-        return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=400)
-    
-    user_role_farm = db.query(UserRoleFarm).filter(
-        UserRoleFarm.user_id == user.user_id,
-        UserRoleFarm.farm_id == farm.farm_id,
-        UserRoleFarm.user_role_farm_state_id == active_urf_state["user_role_farm_state_id"]
-    ).first()
-    
+    # 5. Verificar que el usuario esté asociado con la finca del lote usando el cliente de farms
+    user_role_farm = get_user_role_farm(user.user_id, farm_id)
     if not user_role_farm:
-        logger.warning(f"El usuario no está asociado con la finca con ID {farm.farm_id}")
+        logger.warning(f"El usuario no está asociado con la finca con ID {farm_id}")
         return create_response("error", "No tienes permiso para ver las transacciones en esta finca", status_code=403)
     
-    # 5. Verificar permiso 'read_transaction'
-    role_permission = db.query(RolePermission).join(Permissions).filter(
-        RolePermission.role_id == user_role_farm.role_id,
-        Permissions.name == "read_transaction"
-    ).first()
-    if not role_permission:
+    # 6. Verificar permiso 'read_transaction' usando el cliente de usuarios
+    permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
+    if "read_transaction" not in permissions:
         logger.warning("El rol del usuario no tiene permiso para leer transacciones")
         return create_response("error", "No tienes permiso para ver las transacciones en esta finca", status_code=403)
     
-    # 6. Obtener el estado "Inactivo" para Transactions
+    # 7. Obtener el estado "Inactivo" para Transactions
     inactive_transaction_state = get_transaction_state(db, "Inactivo")
     if not inactive_transaction_state:
         logger.error("Estado 'Inactivo' para Transactions no encontrado")
         return create_response("error", "Estado 'Inactivo' para Transactions no encontrado", status_code=500)
     
-    # 7. Consultar las transacciones del lote que no están inactivas
+    # 8. Consultar las transacciones del lote que no están inactivas
     transactions = db.query(Transactions).filter(
-        Transactions.plot_id == plot_id,
+        Transactions.entity_type == "plot",
+        Transactions.entity_id == plot_id,
         Transactions.transaction_state_id != inactive_transaction_state.transaction_state_id
     ).all()
     
-    # 8. Preparar la lista de transacciones
+    # 9. Preparar la lista de transacciones
     transaction_list = []
     for txn in transactions:
         # Obtener el tipo de transacción
@@ -96,11 +74,11 @@ def list_transactions_use_case(plot_id, session_token, db):
         
         transaction_list.append({
             "transaction_id": txn.transaction_id,
-            "plot_id": txn.plot_id,
+            "plot_id": txn.entity_id,
             "transaction_type_name": txn_type_name,
             "transaction_category_name": txn_category_name,
             "description": txn.description,
-            "value": txn.value,
+            "value": float(txn.value),
             "transaction_date": txn.transaction_date.isoformat(),
             "transaction_state": transaction_state_name
         })
