@@ -5,9 +5,8 @@ from utils.response import session_token_invalid_response, create_response
 from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
 from endpoints.transactions import TransactionResponse
-from adapters.user_client import verify_session_token
-# NUEVO: importar el cliente de farm_client
-from adapters.farm_client import get_user_role_farm_state_by_name
+from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
+from adapters.farm_client import get_user_role_farm_state_by_name, get_user_role_farm, verify_plot
 import logging
 
 logger = logging.getLogger(__name__)
@@ -40,31 +39,38 @@ def edit_transaction_use_case(request, session_token, db):
         logger.warning(f"La transacción con ID {request.transaction_id} está inactiva y no puede ser modificada")
         return create_response("error", "La transacción está inactiva y no puede ser modificada", status_code=403)
  
-    # 5. Verificar que el usuario esté asociado con la finca del lote de la transacción
-    # Cambiar get_state por microservicio
+    # 5. Verificar que el usuario esté asociado con la finca del lote/entidad de la transacción
+    # Obtener el estado activo para user_role_farm usando el cliente del servicio de fincas
     active_urf_state = get_user_role_farm_state_by_name("Activo")
     if not active_urf_state or not active_urf_state.get("user_role_farm_state_id"):
         logger.error("Estado 'Activo' para user_role_farm no encontrado")
         return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=400)
     
-    user_role_farm = db.query(UserRoleFarm).filter(
-        UserRoleFarm.user_id == user.user_id,
-        UserRoleFarm.farm_id == transaction.plot.farm_id,
-        UserRoleFarm.user_role_farm_state_id == active_urf_state["user_role_farm_state_id"]
-    ).first()
+    # Determinar el farm_id según el tipo de entidad de la transacción
+    farm_id = None
+    if transaction.entity_type == "farm":
+        farm_id = transaction.entity_id
+    elif transaction.entity_type == "plot":
+        # Verificar si el lote existe y obtener su farm_id
+        plot_info = verify_plot(transaction.entity_id)
+        if not plot_info:
+            logger.warning(f"El lote con ID {transaction.entity_id} no existe o no está activo")
+            return create_response("error", "El lote asociado a esta transacción no existe o no está activo", status_code=404)
+        farm_id = plot_info.farm_id
+    else:
+        logger.error(f"Tipo de entidad no soportado: {transaction.entity_type}")
+        return create_response("error", "Tipo de entidad no soportado", status_code=400)
     
+    # Utilizar el cliente del servicio de fincas para obtener la relación usuario-finca
+    user_role_farm = get_user_role_farm(user.user_id, farm_id)
     if not user_role_farm:
-        logger.warning(f"El usuario {user.user_id} no está asociado con la finca {transaction.plot.farm_id}")
+        logger.warning(f"El usuario {user.user_id} no está asociado con la finca {farm_id}")
         return create_response("error", "No tienes permisos para editar transacciones en esta finca", status_code=403)
     
-    # 6. Verificar permiso 'edit_transaction'
-    role_permission = db.query(RolePermission).join(Permissions).filter(
-        RolePermission.role_id == user_role_farm.role_id,
-        Permissions.name == "edit_transaction"
-    ).first()
-    
-    if not role_permission:
-        logger.warning(f"El rol {user_role_farm.role_id} del usuario no tiene permiso para editar transacciones")
+    # 6. Verificar permiso 'edit_transaction' usando el cliente del servicio de usuarios
+    permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
+    if not permissions or "edit_transaction" not in permissions:
+        logger.warning(f"El rol del usuario no tiene permiso para editar transacciones")
         return create_response("error", "No tienes permiso para editar transacciones", status_code=403)
     
     # 7. Realizar las actualizaciones permitidas
@@ -125,7 +131,8 @@ def edit_transaction_use_case(request, session_token, db):
         
         response_data = TransactionResponse(
             transaction_id=transaction.transaction_id,
-            plot_id=transaction.plot_id,
+            entity_type=transaction.entity_type,
+            entity_id=transaction.entity_id,
             transaction_type_name=txn_type_name,
             transaction_category_name=txn_category_name,
             description=transaction.description,
