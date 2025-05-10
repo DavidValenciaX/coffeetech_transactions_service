@@ -65,15 +65,6 @@ class FinancialReportResponse(BaseModel):
     analysis: Optional[str] = None
     transaction_history: Optional[List[TransactionHistoryItem]] = None
 
-
-class DetectionHistoryRequest(BaseModel):
-    plot_ids: conlist(int) = Field(..., description="Lista de IDs de lotes (puede ser uno o varios)")
-    fechaInicio: date = Field(..., description="Fecha de inicio del periodo")
-    fechaFin: date = Field(..., description="Fecha de fin del periodo")
-
-class DetectionHistoryResponse(BaseModel):
-    detections: List[DetectionHistoryItem]
-
 # Endpoint para generar el reporte financiero
 @router.post("/financial-report")
 def financial_report(
