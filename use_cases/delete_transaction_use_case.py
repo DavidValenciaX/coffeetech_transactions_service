@@ -1,8 +1,8 @@
 from models.models import Transactions
 from utils.response import create_response, session_token_invalid_response
 from utils.state import get_transaction_state
-from adapters.user_client import verify_session_token
-from adapters.farm_client import get_user_role_farm_state_by_name
+from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
+from adapters.farm_client import get_user_role_farm_state_by_name, get_user_role_farm, verify_plot
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,33 +35,34 @@ def delete_transaction_use_case(request, session_token, db):
         logger.warning(f"La transacción con ID {request.transaction_id} ya está inactiva")
         return create_response("error", "La transacción ya está eliminada", status_code=400)
     
-    # 5. Verificar que el usuario esté asociado con la finca del lote de la transacción
-    active_urf_state = get_user_role_farm_state_by_name("Activo")
-    if not active_urf_state or not active_urf_state.get("user_role_farm_state_id"):
-        logger.error("Estado 'Activo' para user_role_farm no encontrado")
-        return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=400)
+    # 5. Determinar el farm_id según el tipo de entidad de la transacción
+    farm_id = None
+    if transaction.entity_type == "farm":
+        farm_id = transaction.entity_id
+    elif transaction.entity_type == "plot":
+        # Verificar si el lote existe y obtener su farm_id
+        plot_info = verify_plot(transaction.entity_id)
+        if not plot_info:
+            logger.warning(f"El lote con ID {transaction.entity_id} no existe o no está activo")
+            return create_response("error", "El lote asociado a esta transacción no existe o no está activo", status_code=404)
+        farm_id = plot_info.farm_id
+    else:
+        logger.error(f"Tipo de entidad no soportado: {transaction.entity_type}")
+        return create_response("error", "Tipo de entidad no soportado", status_code=400)
     
-    user_role_farm = db.query(UserRoleFarm).filter(
-        UserRoleFarm.user_id == user.user_id,
-        UserRoleFarm.farm_id == transaction.plot.farm_id,
-        UserRoleFarm.user_role_farm_state_id == active_urf_state["user_role_farm_state_id"]
-    ).first()
-    
+    # 6. Verificar que el usuario esté asociado con la finca
+    user_role_farm = get_user_role_farm(user.user_id, farm_id)
     if not user_role_farm:
-        logger.warning(f"El usuario {user.user_id} no está asociado con la finca {transaction.plot.farm_id}")
+        logger.warning(f"El usuario {user.user_id} no está asociado con la finca {farm_id}")
         return create_response("error", "No tienes permisos para eliminar transacciones en esta finca", status_code=403)
     
-    # 6. Verificar permiso 'delete_transaction'
-    role_permission = db.query(RolePermission).join(Permissions).filter(
-        RolePermission.role_id == user_role_farm.role_id,
-        Permissions.name == "delete_transaction"
-    ).first()
-    
-    if not role_permission:
-        logger.warning(f"El rol {user_role_farm.role_id} del usuario no tiene permiso para eliminar transacciones")
+    # 7. Verificar permiso 'delete_transaction' usando el cliente del servicio de usuarios
+    permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
+    if not permissions or "delete_transaction" not in permissions:
+        logger.warning(f"El rol del usuario no tiene permiso para eliminar transacciones")
         return create_response("error", "No tienes permiso para eliminar transacciones", status_code=403)
     
-    # 7. Cambiar el estado de la transacción a 'Inactivo'
+    # 8. Cambiar el estado de la transacción a 'Inactivo'
     try:
         transaction.transaction_state_id = inactive_transaction_state.transaction_state_id
         db.commit()
