@@ -26,6 +26,53 @@ class UserRoleFarmResponse(BaseModel):
     farm_id: int
     user_role_farm_state_id: int
     user_role_farm_state: str
+    
+class PlotVerificationResponse(BaseModel):
+    """Modelo para la respuesta de verificación de lotes"""
+    plot_id: int
+    name: str
+    farm_id: int
+    plot_state_id: int
+    plot_state: str
+
+def verify_plot(plot_id: int):
+    """
+    Verifica si un lote existe y está activo en el servicio de fincas.
+    
+    Args:
+        plot_id (int): ID del lote a verificar
+        
+    Returns:
+        PlotVerificationResponse: Información del lote si existe y está activo
+        None: Si el lote no existe, no está activo, o hay un error en la verificación
+    """
+    url = f"{FARMS_SERVICE_URL}/farms-service/verify-plot/{plot_id}"
+    start_time = time.monotonic()
+    logger.info(f"Verificando lote ID {plot_id} en {url}...")
+    
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(url)
+            duration = time.monotonic() - start_time
+            logger.info(f"Consulta a {url} finalizada en {duration:.4f} segundos con estado {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.warning(f"El lote ID {plot_id} no existe o no está activo. Código: {response.status_code}")
+                return None
+                
+            data = response.json()
+            # Verificar si la respuesta indica un error
+            if "status" in data and data["status"] == "error":
+                logger.warning(f"Error verificando lote: {data.get('message')}")
+                return None
+            
+            # Parsear respuesta exitosa
+            return PlotVerificationResponse(**data)
+            
+    except Exception as e:
+        duration = time.monotonic() - start_time
+        logger.error(f"Error ({type(e).__name__}: {e}) al verificar lote {plot_id} después de {duration:.4f} segundos")
+        return None
 
 def get_farm_by_id(farm_id: int):
     """
