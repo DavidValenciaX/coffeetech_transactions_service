@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Modelos de Pydantic
 
 class FinancialReportRequest(BaseModel):
-    plot_ids: conlist(int) = Field(..., description="Lista de IDs de lotes (puede ser un solo ID)")
+    plot_ids: conlist[int] = Field(..., description="Lista de IDs de lotes (puede ser un solo ID)")
     fechaInicio: date = Field(..., description="Fecha de inicio del periodo")
     fechaFin: date = Field(..., description="Fecha de fin del periodo")
     include_transaction_history: bool = Field(False, description="Indica si se debe incluir el historial de transacciones")
