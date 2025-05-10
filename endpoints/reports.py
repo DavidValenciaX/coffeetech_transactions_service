@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from models.models import Transactions
-from adapters.user_client import verify_session_token
+from models.models import Transactions, TransactionTypes, TransactionCategories, TransactionStates
+from adapters.user_client import verify_session_token, get_role_permissions_for_user_role, user_verification_by_email, UserResponse, get_user_by_id
+from adapters.farm_client import verify_plot, get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
 from dataBase import get_db_session
-from typing import List, Optional
+from typing import List, Optional, Dict
 from utils.response import create_response, session_token_invalid_response
-from utils.state import get_state, get_transaction_state
+from utils.state import get_transaction_state
 from pydantic import BaseModel, Field, conlist
 from datetime import date
 from fastapi.encoders import jsonable_encoder
 from collections import defaultdict
 import logging
-from adapters.farm_client import get_user_role_farm_state_by_name
 
 router = APIRouter()
 
@@ -93,48 +93,47 @@ def financial_report(
         return session_token_invalid_response()
     
     try:
-        # 3. Obtener los lotes seleccionados
-        plots = db.query(Plots).filter(Plots.plot_id.in_(request.plot_ids)).all()
+        # 3. Obtener los lotes seleccionados usando el cliente de farms
+        plots = []
+        plot_names = {}
+        farm_ids = set()
+        
+        for plot_id in request.plot_ids:
+            plot = verify_plot(plot_id)
+            if not plot:
+                logger.warning(f"El lote con ID {plot_id} no existe o no está activo")
+                continue
+            plots.append(plot)
+            plot_names[plot.plot_id] = plot.name
+            farm_ids.add(plot.farm_id)
+        
         if not plots:
-            logger.warning("No se encontraron lotes con los IDs proporcionados")
-            return create_response("error", "No se encontraron lotes con los IDs proporcionados", status_code=404)
+            logger.warning("No se encontraron lotes activos con los IDs proporcionados")
+            return create_response("error", "No se encontraron lotes activos con los IDs proporcionados", status_code=404)
         
         # Asegurarse de que todos los lotes pertenezcan a la misma finca
-        farm_ids = {plot.farm_id for plot in plots}
         if len(farm_ids) != 1:
             logger.warning("Los lotes seleccionados pertenecen a diferentes fincas")
             return create_response("error", "Los lotes seleccionados pertenecen a diferentes fincas", status_code=400)
         
         farm_id = farm_ids.pop()
-        farm = db.query(Farms).filter(Farms.farm_id == farm_id).first()
+        
+        # Obtener información de la finca usando el cliente de farms
+        farm = get_farm_by_id(farm_id)
         if not farm:
-            logger.warning("La finca asociada a los lotes no existe")
-            return create_response("error", "La finca asociada a los lotes no existe", status_code=404)
+            logger.warning(f"La finca con ID {farm_id} no existe o no está disponible")
+            return create_response("error", "La finca asociada a los lotes no existe o no está disponible", status_code=404)
         
         # 4. Verificar que el usuario esté asociado con esta finca y tenga permisos
-        active_urf_state = get_user_role_farm_state_by_name("Activo")
-        if not active_urf_state or not active_urf_state.get("user_role_farm_state_id"):
-            logger.error("Estado 'Activo' para user_role_farm no encontrado")
-            return create_response("error", "Estado 'Activo' para user_role_farm no encontrado", status_code=500)
-        
-        user_role_farm = db.query(UserRoleFarm).filter(
-            UserRoleFarm.user_id == user.user_id,
-            UserRoleFarm.farm_id == farm_id,
-            UserRoleFarm.user_role_farm_state_id == active_urf_state["user_role_farm_state_id"]
-        ).first()
-        
+        user_role_farm = get_user_role_farm(user.user_id, farm_id)
         if not user_role_farm:
             logger.warning(f"El usuario {user.user_id} no está asociado con la finca {farm_id}")
             return create_response("error", "No tienes permisos para ver reportes financieros de esta finca", status_code=403)
         
-        # Verificar permiso 'read_financial_report'
-        role_permission = db.query(RolePermission).join(Permissions).filter(
-            RolePermission.role_id == user_role_farm.role_id,
-            Permissions.name == "read_financial_report"
-        ).first()
-        
-        if not role_permission:
-            logger.warning(f"El rol {user_role_farm.role_id} del usuario no tiene permiso para ver reportes financieros")
+        # Verificar permiso 'read_financial_report' usando el cliente de usuarios
+        permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
+        if "read_financial_report" not in permissions:
+            logger.warning(f"El rol del usuario no tiene permiso para ver reportes financieros")
             return create_response("error", "No tienes permiso para ver reportes financieros", status_code=403)
         
         # 5. Obtener el estado 'Activo' para Transactions
@@ -145,11 +144,33 @@ def financial_report(
         
         # 6. Consultar las transacciones de los lotes seleccionados dentro del rango de fechas
         transactions = db.query(Transactions).filter(
-            Transactions.plot_id.in_(request.plot_ids),
+            Transactions.entity_type == "plot",
+            Transactions.entity_id.in_(request.plot_ids),
             Transactions.transaction_date >= request.fechaInicio,
             Transactions.transaction_date <= request.fechaFin,
             Transactions.transaction_state_id == active_transaction_state.transaction_state_id
         ).all()
+        
+        # Precargar tipos y categorías de transacciones para evitar múltiples consultas
+        transaction_ids = [txn.transaction_id for txn in transactions]
+        transaction_types = {}
+        transaction_categories = {}
+        
+        # Cargar los tipos de transacción
+        type_results = db.query(TransactionTypes).join(
+            Transactions, Transactions.transaction_type_id == TransactionTypes.transaction_type_id
+        ).filter(Transactions.transaction_id.in_(transaction_ids)).all()
+        
+        for t_type in type_results:
+            transaction_types[t_type.transaction_type_id] = t_type
+            
+        # Cargar las categorías de transacción
+        category_results = db.query(TransactionCategories).join(
+            Transactions, Transactions.transaction_category_id == TransactionCategories.transaction_category_id
+        ).filter(Transactions.transaction_id.in_(transaction_ids)).all()
+        
+        for category in category_results:
+            transaction_categories[category.transaction_category_id] = category
         
         # 7. Procesar las transacciones para agregaciones
         plot_financials = {}
@@ -158,10 +179,11 @@ def financial_report(
         farm_ingresos_categorias = defaultdict(float)
         farm_gastos_categorias = defaultdict(float)
         
+        # Inicializar estructuras de datos para cada lote
         for plot in plots:
             plot_financials[plot.plot_id] = {
                 "plot_id": plot.plot_id,
-                "plot_name": plot.name,
+                "plot_name": plot_names[plot.plot_id],
                 "ingresos": 0.0,
                 "gastos": 0.0,
                 "balance": 0.0,
@@ -169,10 +191,15 @@ def financial_report(
                 "gastos_por_categoria": defaultdict(float)
             }
         
+        # Procesar cada transacción
         for txn in transactions:
-            plot_id = txn.plot_id
-            txn_type = txn.transaction_type
-            txn_category = txn.transaction_category
+            plot_id = txn.entity_id
+            if plot_id not in plot_financials:
+                logger.warning(f"Transacción asociada a un lote no incluido en el reporte: {plot_id}")
+                continue
+                
+            txn_type = transaction_types.get(txn.transaction_type_id)
+            txn_category = transaction_categories.get(txn.transaction_category_id)
             
             if not txn_type or not txn_category:
                 logger.warning(f"Transacción con ID {txn.transaction_id} tiene tipo o categoría inválidos")
@@ -224,28 +251,55 @@ def financial_report(
         # Preparar la respuesta
         report_response = FinancialReportResponse(
             finca_nombre=farm.name,
-            lotes_incluidos=[plot.name for plot in plots],
+            lotes_incluidos=[plot_names[plot.plot_id] for plot in plots],
             periodo=f"{request.fechaInicio.isoformat()} a {request.fechaFin.isoformat()}",
             plot_financials=plot_financials_list,
             farm_summary=farm_summary,
-            analysis=None  # Puedes agregar lógica para generar un análisis automático si lo deseas
+            analysis=None
         )
         
         # Agregar historial de transacciones si se solicita
         if request.include_transaction_history:
             transaction_history = []
+            
+            # Crear un caché para evitar múltiples llamadas al servicio de usuarios
+            creator_cache: Dict[int, UserResponse] = {}
+            
+            # Función auxiliar para obtener datos del creador
+            def get_creator_info(creator_id: int) -> str:
+                if creator_id not in creator_cache:
+                    # Utilizar el nuevo método para obtener usuario por ID
+                    user = get_user_by_id(creator_id)
+                    if user:
+                        creator_cache[creator_id] = user
+                        return user.name
+                    else:
+                        # Si no se puede obtener el usuario, mostrar ID como fallback
+                        return f"Usuario #{creator_id}"
+                
+                return creator_cache[creator_id].name
+            
             for txn in transactions:
                 try:
-                    # Obtener el nombre del creador consultando la tabla Users
-                    creator = db.query(Users).filter(Users.user_id == txn.creador_id).first()
-                    creator_name = creator.name if creator else "Desconocido"
+                    plot_id = txn.entity_id
+                    plot_name = plot_names.get(plot_id, f"Lote #{plot_id}")
+                    
+                    # Obtener información del tipo y categoría
+                    txn_type = transaction_types.get(txn.transaction_type_id)
+                    txn_category = transaction_categories.get(txn.transaction_category_id)
+                    
+                    if not txn_type or not txn_category:
+                        continue
+                    
+                    # Obtener el nombre del creador
+                    creator_name = get_creator_info(txn.creator_id)
 
                     history_item = TransactionHistoryItem(
                         date=txn.transaction_date,
-                        plot_name=txn.plot.name,
-                        farm_name=txn.plot.farm.name,
-                        transaction_type=txn.transaction_type.name,
-                        transaction_category=txn.transaction_category.name,
+                        plot_name=plot_name,
+                        farm_name=farm.name,
+                        transaction_type=txn_type.name,
+                        transaction_category=txn_category.name,
                         creator_name=creator_name,
                         value=float(txn.value)
                     )
@@ -253,9 +307,9 @@ def financial_report(
                 except Exception as e:
                     logger.warning(f"Error al procesar la transacción ID {txn.transaction_id}: {str(e)}")
                     continue  # Omitir transacciones con errores
+            
             report_response.transaction_history = transaction_history
 
-        
         logger.info(f"Reporte financiero generado para el usuario {user.user_id} en la finca '{farm.name}'")
         
         return create_response("success", "Reporte financiero generado correctamente", data=jsonable_encoder(report_response))

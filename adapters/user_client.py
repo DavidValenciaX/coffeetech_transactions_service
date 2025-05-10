@@ -223,3 +223,21 @@ def delete_user_role(user_role_id: int) -> None:
     )
     if not response or response.get("status") != "success":
         raise Exception(f"No se pudo eliminar el user_role_id {user_role_id}: {response}")
+
+def get_user_by_id(user_id: int) -> Optional[UserResponse]:
+    """
+    Retrieves user information by user ID from the user service.
+
+    Args:
+        user_id: ID of the user to retrieve
+
+    Returns:
+        UserResponse: User data if found, None otherwise
+    """
+    response = _make_request(f"/users-service/user/{user_id}")
+    
+    if response and response.get("status") == "success" and "user" in response.get("data", {}):
+        return UserResponse(**response["data"]["user"])
+    
+    logger.warning(f"No se pudo obtener información del usuario con ID {user_id}")
+    return None
