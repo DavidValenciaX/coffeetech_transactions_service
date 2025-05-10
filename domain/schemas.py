@@ -5,16 +5,14 @@ from datetime import date
 class CreateTransactionRequest(BaseModel):
     entity_type: str = Field(..., description="Tipo de entidad asociada a la transacción (ej. 'plot', 'farm')")
     entity_id: int = Field(..., description="ID de la entidad asociada a la transacción")
-    transaction_type_name: str = Field(..., description="Nombre del tipo de transacción")
-    transaction_category_name: str = Field(..., description="Nombre de la categoría de la transacción")
+    transaction_category_id: int = Field(..., description="ID de la categoría de la transacción")
     description: Optional[str] = Field(None, max_length=255, description="Descripción de la transacción (máximo 255 caracteres)")
     value: float = Field(..., description="Valor de la transacción")
     transaction_date: date = Field(..., description="Fecha de la transacción")
 
 class UpdateTransactionRequest(BaseModel):
     transaction_id: int = Field(..., description="ID de la transacción a actualizar")
-    transaction_type_name: Optional[str] = Field(None, description="Nuevo nombre del tipo de transacción")
-    transaction_category_name: Optional[str] = Field(None, description="Nuevo nombre de la categoría de la transacción")
+    transaction_category_id: Optional[int] = Field(None, description="Nuevo ID de la categoría de la transacción")
     description: Optional[str] = Field(None, max_length=255, description="Nueva descripción de la transacción (máximo 255 caracteres)")
     value: Optional[float] = Field(None, description="Nuevo valor de la transacción")
     transaction_date: Optional[date] = Field(None, description="Nueva fecha de la transacción")

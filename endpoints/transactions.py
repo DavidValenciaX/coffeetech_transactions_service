@@ -29,10 +29,9 @@ def create_transaction(
     """
     Crear una nueva transacción para un lote en una finca.
 
-    - **farm_id**: ID de la finca
-    - **plot_id**: ID del lote
-    - **transaction_type**: Tipo de transacción (Ej. 'ingreso', 'gasto')
-    - **category**: Categoría de la transacción (Ej. 'fertilizante', 'mano de obra')
+    - **entity_type**: Tipo de entidad asociada a la transacción (ej. 'plot', 'farm')
+    - **entity_id**: ID de la entidad asociada a la transacción
+    - **transaction_category_id**: ID de la categoría de la transacción
     - **value**: Valor monetario de la transacción
     - **description**: Descripción detallada de la transacción
     """
@@ -49,8 +48,7 @@ def edit_transaction(
     Editar una transacción existente para un lote en una finca.
 
     - **transaction_id**: ID de la transacción
-    - **transaction_type**: Nuevo tipo de transacción
-    - **category**: Nueva categoría de la transacción
+    - **transaction_category_id**: Nuevo ID de la categoría de la transacción
     - **value**: Nuevo valor monetario de la transacción
     - **description**: Nueva descripción de la transacción
     """

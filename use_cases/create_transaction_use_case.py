@@ -52,33 +52,34 @@ def create_transaction_use_case(request, session_token, db):
         logger.warning(f"El rol del usuario no tiene permiso para agregar transacciones")
         return create_response("error", "No tienes permiso para agregar transacciones", status_code=403)
     
-    # 6. Verificar que el tipo de transacción existe
-    transaction_type = db.query(TransactionTypes).filter(TransactionTypes.name == request.transaction_type_name).first()
+    # 6. Verificar que la categoría de transacción existe y obtener el tipo de transacción
+    transaction_category = db.query(TransactionCategories).filter(
+        TransactionCategories.transaction_category_id == request.transaction_category_id
+    ).first()
+    if not transaction_category:
+        logger.warning(f"La categoría de transacción con ID '{request.transaction_category_id}' no existe")
+        return create_response("error", "La categoría de transacción especificada no existe", status_code=400)
+
+    # Obtener el tipo de transacción a partir de la categoría
+    transaction_type = db.query(TransactionTypes).filter(
+        TransactionTypes.transaction_type_id == transaction_category.transaction_type_id
+    ).first()
     if not transaction_type:
-        logger.warning(f"El tipo de transacción '{request.transaction_type_name}' no existe")
-        return create_response("error", "El tipo de transacción especificado no existe", status_code=400)
-    
+        logger.warning(f"El tipo de transacción asociado a la categoría ID '{request.transaction_category_id}' no existe")
+        return create_response("error", "El tipo de transacción asociado a la categoría no existe", status_code=400)
+
     # 7. Verificar que el valor sea positivo
     if request.value <= 0:
         logger.warning("El valor de la transacción debe ser positivo")
         return create_response("error", "El valor de la transacción debe ser positivo", status_code=400)
     
-    # 8. Verificar que la categoría de transacción existe para el tipo de transacción
-    transaction_category = db.query(TransactionCategories).filter(
-        TransactionCategories.name == request.transaction_category_name,
-        TransactionCategories.transaction_type_id == transaction_type.transaction_type_id
-    ).first()
-    if not transaction_category:
-        logger.warning(f"La categoría de transacción '{request.transaction_category_name}' no existe para el tipo '{request.transaction_type_name}'")
-        return create_response("error", "La categoría de transacción especificada no existe para el tipo de transacción proporcionado", status_code=400)
-    
-    # 9. Obtener el estado 'Activo' para Transactions
+    # 8. Obtener el estado 'Activo' para Transactions
     active_transaction_state = get_transaction_state(db, "Activo")
     if not active_transaction_state:
         logger.error("Estado 'Activo' para Transactions no encontrado")
         return create_response("error", "Estado 'Activo' para Transactions no encontrado", status_code=500)
     
-    # 10. Crear la transacción
+    # 9. Crear la transacción
     try:
         new_transaction = Transactions(
             entity_type=request.entity_type,

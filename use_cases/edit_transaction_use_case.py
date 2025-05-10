@@ -75,27 +75,18 @@ def edit_transaction_use_case(request, session_token, db):
     
     # 7. Realizar las actualizaciones permitidas
     try:
-        # Actualizar el tipo de transacción si se proporciona
-        if request.transaction_type_name:
-            transaction_type = db.query(TransactionTypes).filter(TransactionTypes.name == request.transaction_type_name).first()
-            if not transaction_type:
-                logger.warning(f"El tipo de transacción '{request.transaction_type_name}' no existe")
-                return create_response("error", "El tipo de transacción especificado no existe", status_code=400)
-            transaction.transaction_type_id = transaction_type.transaction_type_id
-        
         # Actualizar la categoría de transacción si se proporciona
-        if request.transaction_category_name:
-            # Si el tipo de transacción se ha actualizado en este mismo request, usar el nuevo tipo
-            current_transaction_type_id = request.transaction_type_name and transaction_type.transaction_type_id or transaction.transaction_type_id
+        if request.transaction_category_id is not None:
             transaction_category = db.query(TransactionCategories).filter(
-                TransactionCategories.name == request.transaction_category_name,
-                TransactionCategories.transaction_type_id == current_transaction_type_id
+                TransactionCategories.transaction_category_id == request.transaction_category_id
             ).first()
             if not transaction_category:
-                logger.warning(f"La categoría de transacción '{request.transaction_category_name}' no existe para el tipo de transacción actual")
-                return create_response("error", "La categoría de transacción especificada no existe para el tipo de transacción actual", status_code=400)
+                logger.warning(f"La categoría de transacción con ID '{request.transaction_category_id}' no existe")
+                return create_response("error", "La categoría de transacción especificada no existe", status_code=400)
             transaction.transaction_category_id = transaction_category.transaction_category_id
-        
+            # Actualizar el tipo de transacción asociado a la categoría
+            transaction.transaction_type_id = transaction_category.transaction_type_id
+
         # Actualizar la descripción si se proporciona
         if request.description is not None:
             if len(request.description) > 50:
