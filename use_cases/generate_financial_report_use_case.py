@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import Dict
 import logging
 
-from endpoints.reports import (
+from domain.schemas import (
     FinancialReportRequest,
     FinancialCategoryBreakdown,
     PlotFinancialData,

@@ -5,7 +5,7 @@ from adapters.user_client import get_role_permissions_for_user_role, verify_sess
 from utils.response import session_token_invalid_response, create_response
 from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
-from endpoints.transactions import TransactionResponse
+from domain.schemas import TransactionResponse
 import logging
 from adapters.farm_client import get_user_role_farm, get_user_role_farm_state_by_name, verify_plot
 
