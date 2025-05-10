@@ -1,16 +1,11 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from models.models import Transactions, TransactionTypes, TransactionCategories, TransactionStates
-from adapters.user_client import verify_session_token, get_role_permissions_for_user_role, user_verification_by_email, UserResponse, get_user_by_id
-from adapters.farm_client import verify_plot, get_farm_by_id, get_user_role_farm, get_user_role_farm_state_by_name
+from adapters.user_client import verify_session_token
 from dataBase import get_db_session
-from typing import List, Optional, Dict
+from typing import List, Optional
 from utils.response import create_response, session_token_invalid_response
-from utils.state import get_transaction_state
 from pydantic import BaseModel, Field, conlist
 from datetime import date
-from fastapi.encoders import jsonable_encoder
-from collections import defaultdict
 import logging
 from use_cases.generate_financial_report_use_case import generate_financial_report
 

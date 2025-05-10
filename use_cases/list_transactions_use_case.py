@@ -4,8 +4,7 @@ from models.models import (
     Transactions, TransactionTypes, TransactionCategories, TransactionStates
 )
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
-# Use these clients to get data from other microservices
-from adapters.farm_client import get_user_role_farm_state_by_name, verify_plot, get_user_role_farm
+from adapters.farm_client import verify_plot, get_user_role_farm
 import logging
 
 logger = logging.getLogger(__name__)
