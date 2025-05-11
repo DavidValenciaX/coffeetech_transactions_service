@@ -1,3 +1,4 @@
+from fastapi import Depends
 from models.models import (
     TransactionCategories, Transactions, TransactionTypes
 )
@@ -8,10 +9,19 @@ from fastapi.encoders import jsonable_encoder
 from domain.schemas import TransactionResponse
 import logging
 from adapters.farm_client import get_user_role_farm, get_user_role_farm_state_by_name, verify_plot
+from sqlalchemy.orm import Session
+from dataBase import get_db_session
 
 logger = logging.getLogger(__name__)
 
-def create_transaction_use_case(request, session_token, db):
+def create_transaction_use_case(request, session_token, db: Session = Depends(get_db_session)):
+    """
+    Crear una nueva transacción para un lote en una finca.
+    - **plot_id**: ID del lote asociado a la transacción
+    - **transaction_category_id**: ID de la categoría de la transacción
+    - **value**: Valor monetario de la transacción
+    - **description**: Descripción detallada de la transacción
+    """
     # 1. Verificar que el session_token esté presente
     if not session_token:
         logger.warning("No se proporcionó el token de sesión en la cabecera")

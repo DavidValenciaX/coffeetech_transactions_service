@@ -1,3 +1,6 @@
+from fastapi import Depends
+from dataBase import get_db_session
+from sqlalchemy.orm import Session
 from models.models import Transactions
 from utils.response import create_response, session_token_invalid_response
 from utils.state import get_transaction_state
@@ -7,7 +10,11 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def delete_transaction_use_case(request, session_token, db):
+def delete_transaction_use_case(request, session_token, db: Session = Depends(get_db_session)):
+    """
+    Eliminar una transacción existente para un lote en una finca.
+    - **transaction ID**: ID de la transacción a eliminar
+    """
     # 1. Verificar que el session_token esté presente
     if not session_token:
         logger.warning("No se proporcionó el token de sesión en la cabecera")

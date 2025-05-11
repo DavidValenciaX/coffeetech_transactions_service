@@ -1,3 +1,4 @@
+from fastapi import Depends
 from models.models import (
     Transactions, TransactionCategories, TransactionStates
 )
@@ -8,10 +9,20 @@ from domain.schemas import TransactionResponse
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
 from adapters.farm_client import get_user_role_farm_state_by_name, get_user_role_farm, verify_plot
 import logging
+from sqlalchemy.orm import joinedload, Session
+from dataBase import get_db_session
 
 logger = logging.getLogger(__name__)
 
-def edit_transaction_use_case(request, session_token, db):
+def edit_transaction_use_case(request, session_token, db: Session = Depends(get_db_session)):
+    """
+    Editar una transacción existente para un lote en una finca.
+    - **transaction
+    - **transaction
+    - **transaction_category_id**: Nuevo ID de la categoría de la transacción
+    - **value**: Nuevo valor monetario de la transacción
+    - **description**: Nueva descripción de la transacción
+    """
     # 1. Verificar que el session_token esté presente
     if not session_token:
         logger.warning("No se proporcionó el token de sesión en la cabecera")
@@ -105,7 +116,7 @@ def edit_transaction_use_case(request, session_token, db):
         
         # Obtener la categoría de transacción actualizada y a través de ella el tipo
         txn_category = db.query(TransactionCategories).options(
-            db.joinedload(TransactionCategories.transaction_type) # Cargar el tipo asociado
+            joinedload(TransactionCategories.transaction_type) # Cargar el tipo asociado
         ).filter(TransactionCategories.transaction_category_id == transaction.transaction_category_id).first()
         
         txn_category_name = "Desconocido"
