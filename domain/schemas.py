@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import date
 
@@ -15,6 +15,12 @@ class UpdateTransactionRequest(BaseModel):
     description: Optional[str] = Field(None, max_length=255, description="Nueva descripción de la transacción (máximo 255 caracteres)")
     value: Optional[float] = Field(None, description="Nuevo valor de la transacción")
     transaction_date: Optional[date] = Field(None, description="Nueva fecha de la transacción")
+    
+    @field_validator('value')
+    def value_must_be_positive(cls, v):
+        if v is not None and v <= 0:
+            raise ValueError('El valor de la transacción debe ser positivo')
+        return v
 
 class DeleteTransactionRequest(BaseModel):
     transaction_id: int = Field(..., description="ID de la transacción a eliminar")

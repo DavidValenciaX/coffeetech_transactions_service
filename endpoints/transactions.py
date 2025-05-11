@@ -6,7 +6,8 @@ import logging
 from domain.schemas import (
     CreateTransactionRequest,
     UpdateTransactionRequest,
-    DeleteTransactionRequest
+    DeleteTransactionRequest,
+    TransactionResponse
 )
 from use_cases.create_transaction_use_case import create_transaction_use_case
 from use_cases.edit_transaction_use_case import edit_transaction_use_case
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 bogota_tz = pytz.timezone("America/Bogota")
 
 # Endpoint to Create a Transactions
-@router.post("/create-transaction")
+@router.post("/create-transaction", response_model=TransactionResponse)
 def create_transaction(
     request: CreateTransactionRequest,
     session_token: str,
@@ -37,7 +38,7 @@ def create_transaction(
     return create_transaction_use_case(request, session_token, db)
 
 # Endpoint to Edit a Transactions
-@router.post("/edit-transaction")
+@router.post("/edit-transaction", response_model=TransactionResponse)
 def edit_transaction(
     request: UpdateTransactionRequest,
     session_token: str ,
@@ -69,7 +70,7 @@ def delete_transaction(
     return delete_transaction_use_case(request, session_token, db)
 
 # Endpoint to Read Transactions for a Plots
-@router.get("/list-transactions/{plot_id}")
+@router.get("/list-transactions/{plot_id}", response_model=list[TransactionResponse])
 def read_transactions(
     plot_id: int,
     session_token: str ,

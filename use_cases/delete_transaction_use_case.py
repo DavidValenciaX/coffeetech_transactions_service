@@ -6,11 +6,13 @@ from utils.response import create_response, session_token_invalid_response
 from utils.state import get_transaction_state
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
 from adapters.farm_client import get_user_role_farm, verify_plot
+from domain.schemas import DeleteTransactionRequest
+from fastapi.encoders import jsonable_encoder
 import logging
 
 logger = logging.getLogger(__name__)
 
-def delete_transaction_use_case(request, session_token, db: Session = Depends(get_db_session)):
+def delete_transaction_use_case(request: DeleteTransactionRequest, session_token: str, db: Session = Depends(get_db_session)):
     """
     Eliminar una transacción existente para un lote en una finca.
     - **transaction ID**: ID de la transacción a eliminar

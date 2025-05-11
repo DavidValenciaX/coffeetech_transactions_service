@@ -5,14 +5,14 @@ from dataBase import get_db_session
 from utils.response import create_response, session_token_invalid_response
 import logging
 from use_cases.generate_financial_report_use_case import generate_financial_report
-from domain.schemas import FinancialReportRequest
+from domain.schemas import FinancialReportRequest, FinancialReportResponse
 
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
 
 # Endpoint para generar el reporte financiero
-@router.post("/financial-report")
+@router.post("/financial-report", response_model=FinancialReportResponse)
 def financial_report(
     request: FinancialReportRequest,
     session_token: str,

@@ -5,7 +5,7 @@ from models.models import (
 from utils.response import session_token_invalid_response, create_response
 from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
-from domain.schemas import TransactionResponse
+from domain.schemas import TransactionResponse, UpdateTransactionRequest
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
 from adapters.farm_client import get_user_role_farm_state_by_name, get_user_role_farm, verify_plot
 import logging
@@ -14,7 +14,7 @@ from dataBase import get_db_session
 
 logger = logging.getLogger(__name__)
 
-def edit_transaction_use_case(request, session_token, db: Session = Depends(get_db_session)):
+def edit_transaction_use_case(request: UpdateTransactionRequest, session_token: str, db: Session = Depends(get_db_session)):
     """
     Editar una transacción existente para un lote en una finca.
     - **transaction
@@ -91,9 +91,9 @@ def edit_transaction_use_case(request, session_token, db: Session = Depends(get_
 
         # Actualizar la descripción si se proporciona
         if request.description is not None:
-            if len(request.description) > 50:
-                logger.warning("La descripción excede los 50 caracteres")
-                return create_response("error", "La descripción no puede exceder los 50 caracteres", status_code=400)
+            # if len(request.description) > 255:
+            #     logger.warning("La descripción excede los 255 caracteres")
+            #     return create_response("error", "La descripción no puede exceder los 255 caracteres", status_code=400)
             transaction.description = request.description
         
         # Actualizar el valor si se proporciona
@@ -138,11 +138,9 @@ def edit_transaction_use_case(request, session_token, db: Session = Depends(get_
             transaction_state=transaction_state_name
         )
         
-        response_dict = jsonable_encoder(response_data.dict())
-
         logger.info(f"Transacción con ID {transaction.transaction_id} actualizada exitosamente")
         
-        return create_response("success", "Transacción actualizada correctamente", data=response_dict)
+        return create_response("success", "Transacción actualizada correctamente", data=response_data)
     
     except Exception as e:
         db.rollback()

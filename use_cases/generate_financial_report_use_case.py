@@ -6,6 +6,9 @@ from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
 from collections import defaultdict
 from typing import Dict
+from sqlalchemy.orm import Session
+from fastapi import Depends
+from dataBase import get_db_session
 import logging
 
 from domain.schemas import (
@@ -19,7 +22,15 @@ from domain.schemas import (
 
 logger = logging.getLogger(__name__)
 
-def generate_financial_report(request: FinancialReportRequest, user, db):
+def generate_financial_report(request: FinancialReportRequest, user, db: Session = Depends(get_db_session)):
+    """
+    Generar un reporte financiero para los lotes seleccionados en una finca.
+    - **plot_ids**: Lista de IDs de lotes para los cuales se desea generar el reporte
+    - **fechaInicio**: Fecha de inicio del periodo del reporte
+    - **fechaFin**: Fecha de fin del periodo del reporte
+    - **include_transaction_history**: Indica si se debe incluir el historial de transacciones
+    """
+    
     # 3. Obtener los lotes seleccionados usando el cliente de farms
     plots = []
     plot_names = {}

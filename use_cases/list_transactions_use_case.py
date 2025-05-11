@@ -9,11 +9,13 @@ from models.models import (
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
 from adapters.farm_client import verify_plot, get_user_role_farm
 from sqlalchemy.orm import joinedload, Session
+from domain.schemas import TransactionResponse
+from fastapi.encoders import jsonable_encoder
 import logging
 
 logger = logging.getLogger(__name__)
 
-def list_transactions_use_case(plot_id, session_token, db: Session = Depends(get_db_session)):
+def list_transactions_use_case(plot_id, session_token: str, db: Session = Depends(get_db_session)):
     """
     Listar las transacciones de un lote específico en una finca.
     - **plot_id**: ID del lote para el cual se desean listar las transacciones
@@ -80,16 +82,17 @@ def list_transactions_use_case(plot_id, session_token, db: Session = Depends(get
         
         transaction_state_name = txn.state.name if txn.state else "Desconocido"
         
-        transaction_list.append({
-            "transaction_id": txn.transaction_id,
-            "plot_id": txn.plot_id,
-            "transaction_type_name": txn_type_name,
-            "transaction_category_name": txn_category_name,
-            "description": txn.description,
-            "value": float(txn.value),
-            "transaction_date": txn.transaction_date.isoformat(),
-            "transaction_state": transaction_state_name
-        })
+        response_data = TransactionResponse(
+            transaction_id=txn.transaction_id,
+            plot_id=txn.plot_id,
+            transaction_type_name=txn_type_name,
+            transaction_category_name=txn_category_name,
+            description=txn.description,
+            value=float(txn.value),
+            transaction_date=txn.transaction_date,
+            transaction_state=transaction_state_name
+        )
+        transaction_list.append(jsonable_encoder(response_data))
     
     if not transaction_list:
         return create_response("success", "El lote no tiene transacciones registradas", {"transactions": []})

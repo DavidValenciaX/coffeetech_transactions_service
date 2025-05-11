@@ -6,7 +6,7 @@ from adapters.user_client import get_role_permissions_for_user_role, verify_sess
 from utils.response import session_token_invalid_response, create_response
 from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
-from domain.schemas import TransactionResponse
+from domain.schemas import CreateTransactionRequest, TransactionResponse
 import logging
 from adapters.farm_client import get_user_role_farm, get_user_role_farm_state_by_name, verify_plot
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from dataBase import get_db_session
 
 logger = logging.getLogger(__name__)
 
-def create_transaction_use_case(request, session_token, db: Session = Depends(get_db_session)):
+def create_transaction_use_case(request: CreateTransactionRequest, session_token: str, db: Session = Depends(get_db_session)):
     """
     Crear una nueva transacción para un lote en una finca.
     - **plot_id**: ID del lote asociado a la transacción
