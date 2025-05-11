@@ -6,7 +6,7 @@ from utils.state import get_transaction_state
 from fastapi.encoders import jsonable_encoder
 from collections import defaultdict
 from typing import Dict
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends
 from dataBase import get_db_session
 import logging
@@ -94,7 +94,7 @@ def generate_financial_report(request: FinancialReportRequest, user, db: Session
         category_ids = list(set([t.transaction_category_id for t in transactions]))
         
         categories_with_types_query = db.query(TransactionCategories).options(
-            db.joinedload(TransactionCategories.transaction_type)
+            joinedload(TransactionCategories.transaction_type)
         ).filter(TransactionCategories.transaction_category_id.in_(category_ids)).all()
         
         # Crear un mapa para fácil acceso: category_id -> TransactionCategory (con su transaction_type cargado)
