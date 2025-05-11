@@ -35,6 +35,16 @@ class TransactionResponse(BaseModel):
     transaction_date: date
     transaction_state: str
 
+class TransactionTypeResponse(BaseModel):
+    transaction_type_id: int
+    name: str
+
+class TransactionCategoryResponse(BaseModel):
+    transaction_category_id: int
+    name: str
+    transaction_type_id: int
+    transaction_type_name: str
+
 # Financial Report Schemas
 class FinancialReportRequest(BaseModel):
     plot_ids: List[int] = Field(..., description="Lista de IDs de lotes (debe contener al menos un ID)", min_items=1)

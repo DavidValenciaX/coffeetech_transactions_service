@@ -5,6 +5,8 @@ import pytz
 import logging
 from domain.schemas import (
     CreateTransactionRequest,
+    TransactionCategoryResponse,
+    TransactionTypeResponse,
     UpdateTransactionRequest,
     DeleteTransactionRequest,
     TransactionResponse
@@ -13,6 +15,8 @@ from use_cases.create_transaction_use_case import create_transaction_use_case
 from use_cases.edit_transaction_use_case import edit_transaction_use_case
 from use_cases.list_transactions_use_case import list_transactions_use_case
 from use_cases.delete_transaction_use_case import delete_transaction_use_case
+from use_cases.list_transaction_types_use_case import list_transaction_types_use_case
+from use_cases.list_transaction_categories_use_case import list_transaction_categories_use_case
 
 router = APIRouter()
 
@@ -83,3 +87,17 @@ def read_transactions(
     - **session_token**: Token de sesión del usuario para verificar permisos y autenticación
     """
     return list_transactions_use_case(plot_id, session_token, db)
+
+@router.get("/transaction-types", response_model = TransactionTypeResponse)
+def get_transaction_types(db: Session = Depends(get_db_session)):
+    """
+    Lista todos los tipos de transacción disponibles.
+    """
+    return list_transaction_types_use_case(db)
+
+@router.get("/transaction-categories", response_model = TransactionCategoryResponse)
+def get_transaction_categories(db: Session = Depends(get_db_session)):
+    """
+    Lista todas las categorías de transacción disponibles.
+    """
+    return list_transaction_categories_use_case(db)
