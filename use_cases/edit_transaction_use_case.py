@@ -1,5 +1,5 @@
 from models.models import (
-    Transactions, TransactionTypes, TransactionCategories, TransactionStates
+    Transactions, TransactionCategories, TransactionStates
 )
 from utils.response import session_token_invalid_response, create_response
 from utils.state import get_transaction_state
@@ -77,7 +77,6 @@ def edit_transaction_use_case(request, session_token, db):
                 return create_response("error", "La categoría de transacción especificada no existe", status_code=400)
             transaction.transaction_category_id = transaction_category.transaction_category_id
             # Actualizar el tipo de transacción asociado a la categoría
-            transaction.transaction_type_id = transaction_category.transaction_type_id
 
         # Actualizar la descripción si se proporciona
         if request.description is not None:
@@ -104,13 +103,18 @@ def edit_transaction_use_case(request, session_token, db):
         transaction_current_state = db.query(TransactionStates).filter(TransactionStates.transaction_state_id == transaction.transaction_state_id).first()
         transaction_state_name = transaction_current_state.name if transaction_current_state else "Desconocido"
         
-        # Obtener el tipo de transacción actualizado
-        txn_type = db.query(TransactionTypes).filter(TransactionTypes.transaction_type_id == transaction.transaction_type_id).first()
-        txn_type_name = txn_type.name if txn_type else "Desconocido"
+        # Obtener la categoría de transacción actualizada y a través de ella el tipo
+        txn_category = db.query(TransactionCategories).options(
+            db.joinedload(TransactionCategories.transaction_type) # Cargar el tipo asociado
+        ).filter(TransactionCategories.transaction_category_id == transaction.transaction_category_id).first()
         
-        # Obtener la categoría de transacción actualizada
-        txn_category = db.query(TransactionCategories).filter(TransactionCategories.transaction_category_id == transaction.transaction_category_id).first()
-        txn_category_name = txn_category.name if txn_category else "Desconocido"
+        txn_category_name = "Desconocido"
+        txn_type_name = "Desconocido"
+
+        if txn_category:
+            txn_category_name = txn_category.name
+            if txn_category.transaction_type:
+                txn_type_name = txn_category.transaction_type.name
         
         response_data = TransactionResponse(
             transaction_id=transaction.transaction_id,

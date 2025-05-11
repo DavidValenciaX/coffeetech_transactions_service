@@ -1,15 +1,24 @@
+from fastapi import Depends
+from requests import Session
+from dataBase import get_db_session
 from utils.response import create_response, session_token_invalid_response
 from utils.state import get_transaction_state
 from models.models import (
-    Transactions, TransactionTypes, TransactionCategories, TransactionStates
+    Transactions, TransactionCategories
 )
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
 from adapters.farm_client import verify_plot, get_user_role_farm
+from sqlalchemy.orm import joinedload, Session
 import logging
 
 logger = logging.getLogger(__name__)
 
-def list_transactions_use_case(plot_id, session_token, db):
+def list_transactions_use_case(plot_id, session_token, db: Session = Depends(get_db_session)):
+    """
+    Listar las transacciones de un lote específico en una finca.
+    - **plot_id**: ID del lote para el cual se desean listar las transacciones
+    - **session_token**: Token de sesión del usuario
+    """
 
     # 1. Verificar que el session_token esté presente
     if not session_token:
@@ -50,7 +59,10 @@ def list_transactions_use_case(plot_id, session_token, db):
         return create_response("error", "Estado 'Inactivo' para Transactions no encontrado", status_code=500)
     
     # 8. Consultar las transacciones del lote que no están inactivas
-    transactions = db.query(Transactions).filter(
+    transactions = db.query(Transactions).options(
+        joinedload(Transactions.transaction_category).joinedload(TransactionCategories.transaction_type),
+        joinedload(Transactions.state)
+    ).filter(
         Transactions.plot_id == plot_id,
         Transactions.transaction_state_id != inactive_transaction_state.transaction_state_id
     ).all()
@@ -58,17 +70,15 @@ def list_transactions_use_case(plot_id, session_token, db):
     # 9. Preparar la lista de transacciones
     transaction_list = []
     for txn in transactions:
-        # Obtener el tipo de transacción
-        txn_type = db.query(TransactionTypes).filter(TransactionTypes.transaction_type_id == txn.transaction_type_id).first()
-        txn_type_name = txn_type.name if txn_type else "Desconocido"
+        txn_type_name = "Desconocido"
+        txn_category_name = "Desconocido"
         
-        # Obtener la categoría de la transacción
-        txn_category = db.query(TransactionCategories).filter(TransactionCategories.transaction_category_id == txn.transaction_category_id).first()
-        txn_category_name = txn_category.name if txn_category else "Desconocido"
+        if txn.transaction_category:
+            txn_category_name = txn.transaction_category.name
+            if txn.transaction_category.transaction_type:
+                txn_type_name = txn.transaction_category.transaction_type.name
         
-        # Obtener el estado de la transacción
-        transaction_state = db.query(TransactionStates).filter(TransactionStates.transaction_state_id == txn.transaction_state_id).first()
-        transaction_state_name = transaction_state.name if transaction_state else "Desconocido"
+        transaction_state_name = txn.state.name if txn.state else "Desconocido"
         
         transaction_list.append({
             "transaction_id": txn.transaction_id,

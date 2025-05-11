@@ -1,4 +1,4 @@
-from models.models import Transactions, TransactionTypes, TransactionCategories
+from models.models import Transactions, TransactionCategories
 from adapters.user_client import get_role_permissions_for_user_role, get_user_by_id
 from adapters.farm_client import verify_plot, get_farm_by_id, get_user_role_farm
 from utils.response import create_response
@@ -77,27 +77,20 @@ def generate_financial_report(request: FinancialReportRequest, user, db):
         Transactions.transaction_state_id == active_transaction_state.transaction_state_id
     ).all()
     
-    # Precargar tipos y categorías de transacciones para evitar múltiples consultas
-    transaction_ids = [txn.transaction_id for txn in transactions]
-    transaction_types = {}
-    transaction_categories = {}
-    
-    # Cargar los tipos de transacción
-    type_results = db.query(TransactionTypes).join(
-        Transactions, Transactions.transaction_type_id == TransactionTypes.transaction_type_id
-    ).filter(Transactions.transaction_id.in_(transaction_ids)).all()
-    
-    for t_type in type_results:
-        transaction_types[t_type.transaction_type_id] = t_type
+    # Precargar categorías de transacciones y sus tipos asociados para las transacciones filtradas
+    # para evitar múltiples consultas N+1 dentro del bucle.
+    if transactions:
+        category_ids = list(set([t.transaction_category_id for t in transactions]))
         
-    # Cargar las categorías de transacción
-    category_results = db.query(TransactionCategories).join(
-        Transactions, Transactions.transaction_category_id == TransactionCategories.transaction_category_id
-    ).filter(Transactions.transaction_id.in_(transaction_ids)).all()
-    
-    for category in category_results:
-        transaction_categories[category.transaction_category_id] = category
-    
+        categories_with_types_query = db.query(TransactionCategories).options(
+            db.joinedload(TransactionCategories.transaction_type)
+        ).filter(TransactionCategories.transaction_category_id.in_(category_ids)).all()
+        
+        # Crear un mapa para fácil acceso: category_id -> TransactionCategory (con su transaction_type cargado)
+        categories_map = {cat.transaction_category_id: cat for cat in categories_with_types_query}
+    else:
+        categories_map = {}
+        
     # 7. Procesar las transacciones para agregaciones
     plot_financials = {}
     farm_ingresos = 0.0
@@ -124,28 +117,28 @@ def generate_financial_report(request: FinancialReportRequest, user, db):
             logger.warning(f"Transacción asociada a un lote no incluido en el reporte: {plot_id}")
             continue
             
-        txn_type = transaction_types.get(txn.transaction_type_id)
-        txn_category = transaction_categories.get(txn.transaction_category_id)
+        txn_category_obj = categories_map.get(txn.transaction_category_id)
         
-        if not txn_type or not txn_category:
-            logger.warning(f"Transacción con ID {txn.transaction_id} tiene tipo o categoría inválidos")
-            continue  # Omitir transacciones incompletas
+        if not txn_category_obj or not txn_category_obj.transaction_type:
+            logger.warning(f"Transacción con ID {txn.transaction_id} tiene categoría o tipo de transacción inválidos o no encontrados.")
+            continue
         
-        category = txn_category.name
+        txn_type_obj = txn_category_obj.transaction_type
+        category_name = txn_category_obj.name
         monto = float(txn.value)
         
-        if txn_type.name.lower() in ["ingreso", "income", "revenue"]:
+        if txn_type_obj.name.lower() in ["ingreso", "income", "revenue"]:
             plot_financials[plot_id]["ingresos"] += monto
-            plot_financials[plot_id]["ingresos_por_categoria"][category] += monto
+            plot_financials[plot_id]["ingresos_por_categoria"][category_name] += monto
             farm_ingresos += monto
-            farm_ingresos_categorias[category] += monto
-        elif txn_type.name.lower() in ["gasto", "expense", "cost"]:
+            farm_ingresos_categorias[category_name] += monto
+        elif txn_type_obj.name.lower() in ["gasto", "expense", "cost"]:
             plot_financials[plot_id]["gastos"] += monto
-            plot_financials[plot_id]["gastos_por_categoria"][category] += monto
+            plot_financials[plot_id]["gastos_por_categoria"][category_name] += monto
             farm_gastos += monto
-            farm_gastos_categorias[category] += monto
+            farm_gastos_categorias[category_name] += monto
         else:
-            logger.warning(f"Transacción con ID {txn.transaction_id} tiene un tipo desconocido '{txn_type.name}'")
+            logger.warning(f"Transacción con ID {txn.transaction_id} tiene un tipo desconocido '{txn_type_obj.name}'")
     
     # Calcular balances por lote
     plot_financials_list = []
@@ -207,20 +200,21 @@ def generate_financial_report(request: FinancialReportRequest, user, db):
                 plot_id = txn.plot_id
                 plot_name = plot_names.get(plot_id, f"Lote #{plot_id}")
                 
-                txn_type = transaction_types.get(txn.transaction_type_id)
-                txn_category = transaction_categories.get(txn.transaction_category_id)
+                txn_category_obj = categories_map.get(txn.transaction_category_id)
                 
-                if not txn_type or not txn_category:
+                if not txn_category_obj or not txn_category_obj.transaction_type:
+                    logger.warning(f"Historial: Transacción ID {txn.transaction_id} con categoría/tipo inválido.")
                     continue
                 
+                txn_type_obj = txn_category_obj.transaction_type
                 creator_name = get_creator_info(txn.creator_id)
 
                 history_item = TransactionHistoryItem(
                     date=txn.transaction_date,
                     plot_name=plot_name,
                     farm_name=farm.name,
-                    transaction_type=txn_type.name,
-                    transaction_category=txn_category.name,
+                    transaction_type=txn_type_obj.name,
+                    transaction_category=txn_category_obj.name,
                     creator_name=creator_name,
                     value=float(txn.value)
                 )

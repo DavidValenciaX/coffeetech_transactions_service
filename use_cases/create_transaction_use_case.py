@@ -79,7 +79,6 @@ def create_transaction_use_case(request, session_token, db):
     try:
         new_transaction = Transactions(
             plot_id=request.plot_id,
-            transaction_type_id=transaction_type.transaction_type_id,
             transaction_category_id=transaction_category.transaction_category_id,
             description=request.description,
             value=request.value,
