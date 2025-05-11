@@ -28,7 +28,6 @@ jobs:
         HOST: 173.212.224.226
         USER: root
         DEPLOY_PATH: /home/projects/coffeetech_services/coffeetech_transactions_service/
-        # IMAGE_NAME is less relevant now but kept for context
         IMAGE_NAME: coffeetech-transactions-service
       run: |
         echo "Deploying to production server..."

@@ -1,7 +1,7 @@
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-import sys # Import sys to write directly to stderr if console handler fails
+import sys
 
 def setup_logger():
     """
@@ -23,7 +23,7 @@ def setup_logger():
             except OSError as e:
                 # Handle potential race condition or permission error during dir creation
                 if not os.path.isdir(logs_dir):
-                     # Log directly to stderr as logger might not be fully set up
+                    # Log directly to stderr as logger might not be fully set up
                     print(f"ERROR: Failed to create log directory {logs_dir}: {e}", file=sys.stderr)
                     # Re-raise if it's not a directory exists error or permission issue we can maybe ignore
                     # Depending on requirements, you might want to exit or continue without file logging
@@ -47,7 +47,7 @@ def setup_logger():
             console_handler.setFormatter(console_format)
             root_logger.addHandler(console_handler)
         except Exception as e:
-             # If even console handler fails, print to stderr
+            # If even console handler fails, print to stderr
             print(f"CRITICAL ERROR: Failed to set up console logging: {e}", file=sys.stderr)
             # Depending on policy, might want to exit or raise
             # return None # Indicate failure
@@ -74,10 +74,10 @@ def setup_logger():
             # Use the already configured root_logger (which should have console handler)
             # Check if console handler was added successfully before logging warning
             if any(isinstance(h, logging.StreamHandler) for h in root_logger.handlers):
-                 root_logger.warning(f"Failed to set up file logging to {log_file_path}: {e}. Logging will proceed only to console.")
+                root_logger.warning(f"Failed to set up file logging to {log_file_path}: {e}. Logging will proceed only to console.")
             else:
-                 # Fallback if console handler also failed
-                 print(f"WARNING: Failed to set up file logging to {log_file_path}: {e}. Console logging also failed.", file=sys.stderr)
+                # Fallback if console handler also failed
+                print(f"WARNING: Failed to set up file logging to {log_file_path}: {e}. Console logging also failed.", file=sys.stderr)
 
 
     except Exception as e:
