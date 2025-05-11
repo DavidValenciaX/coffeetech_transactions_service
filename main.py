@@ -8,7 +8,7 @@ logger.info("Starting CoffeeTech Transactions Service")
 
 app = FastAPI()
 
-app.include_router(transactions.router, prefix="/transaction", tags=["transaction"])
+app.include_router(transactions.router, prefix="/transaction", tags=["Transacciones"])
 
 app.include_router(reports.router, prefix="/reports", tags=["Reports"])
 
