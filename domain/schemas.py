@@ -89,3 +89,31 @@ class FinancialReportResponse(BaseModel):
     farm_summary: FarmFinancialSummary
     analysis: Optional[str] = None
     transaction_history: Optional[List[TransactionHistoryItem]] = None
+
+class FarmDetailResponse(BaseModel):
+    farm_id: int
+    name: str
+    area: float
+    area_unit_id: int
+    area_unit: str
+    farm_state_id: int
+    farm_state: str
+
+class UserRoleFarmResponse(BaseModel):
+    user_role_farm_id: int
+    user_role_id: int
+    farm_id: int
+    user_role_farm_state_id: int
+    user_role_farm_state: str
+
+class PlotVerificationResponse(BaseModel):
+    plot_id: int
+    name: str
+    farm_id: int
+    plot_state_id: int
+    plot_state: str
+
+class UserResponse(BaseModel):
+    user_id: int
+    name: str
+    email: str

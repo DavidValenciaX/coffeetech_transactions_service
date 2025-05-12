@@ -1,5 +1,9 @@
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from domain.schemas import (
+    FarmDetailResponse,
+    UserRoleFarmResponse,
+    PlotVerificationResponse,
+)
 import os
 import logging
 import httpx
@@ -10,30 +14,6 @@ load_dotenv(override=True, encoding="utf-8")
 logger = logging.getLogger(__name__)
 
 FARMS_SERVICE_URL = os.getenv("FARMS_SERVICE_URL", "http://localhost:8002")
-
-class FarmDetailResponse(BaseModel):
-    farm_id: int
-    name: str
-    area: float
-    area_unit_id: int
-    area_unit: str
-    farm_state_id: int
-    farm_state: str
-
-class UserRoleFarmResponse(BaseModel):
-    user_role_farm_id: int
-    user_role_id: int
-    farm_id: int
-    user_role_farm_state_id: int
-    user_role_farm_state: str
-    
-class PlotVerificationResponse(BaseModel):
-    """Modelo para la respuesta de verificación de lotes"""
-    plot_id: int
-    name: str
-    farm_id: int
-    plot_state_id: int
-    plot_state: str
 
 def verify_plot(plot_id: int):
     """

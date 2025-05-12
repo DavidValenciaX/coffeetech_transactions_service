@@ -1,6 +1,6 @@
 from typing import Optional, Any, Dict, List, Union
-from pydantic import BaseModel
 from dotenv import load_dotenv
+from domain.schemas import UserResponse
 import httpx
 import logging
 import os
@@ -12,11 +12,6 @@ logger = logging.getLogger(__name__)
 
 USER_SERVICE_URL = os.getenv("USER_SERVICE_URL", "http://localhost:8000")
 DEFAULT_TIMEOUT = 10.0
-
-class UserResponse(BaseModel):
-    user_id: int
-    name: str
-    email: str
 
 def _make_request(
     endpoint: str,
