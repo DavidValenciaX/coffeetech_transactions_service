@@ -2,9 +2,7 @@
 Tests para delete_transaction_use_case.py
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import date
-from decimal import Decimal
+from unittest.mock import Mock, patch
 from pydantic import ValidationError
 
 from use_cases.delete_transaction_use_case import delete_transaction_use_case

@@ -2,15 +2,14 @@
 Tests para create_transaction_use_case.py
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from datetime import date, datetime
+from unittest.mock import Mock, patch
+from datetime import date
 from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from use_cases.create_transaction_use_case import create_transaction_use_case
 from domain.schemas import CreateTransactionRequest, UserResponse, PlotVerificationResponse, UserRoleFarmResponse
-from models.models import TransactionCategories, TransactionTypes, Transactions, TransactionStates
-from utils.response import create_response, session_token_invalid_response
+from models.models import TransactionCategories, TransactionTypes, TransactionStates
 
 
 class TestCreateTransactionUseCase:
