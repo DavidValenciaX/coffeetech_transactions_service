@@ -55,7 +55,7 @@ def create_transaction_use_case(request: CreateTransactionRequest, session_token
     # Verificar permiso 'add_transaction' usando el servicio de usuarios
     permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
     if "add_transaction" not in permissions:
-        logger.warning(f"El rol del usuario no tiene permiso para agregar transacciones")
+        logger.warning("El rol del usuario no tiene permiso para agregar transacciones")
         return create_response("error", "No tienes permiso para agregar transacciones", status_code=403)
     
     # 6. Verificar que la categoría de transacción existe y obtener el tipo de transacción

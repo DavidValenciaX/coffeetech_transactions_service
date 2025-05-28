@@ -7,7 +7,6 @@ from utils.state import get_transaction_state
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
 from adapters.farm_client import get_user_role_farm, verify_plot
 from domain.schemas import DeleteTransactionRequest
-from fastapi.encoders import jsonable_encoder
 import logging
 
 logger = logging.getLogger(__name__)
@@ -60,7 +59,7 @@ def delete_transaction_use_case(request: DeleteTransactionRequest, session_token
     # 7. Verificar permiso 'delete_transaction' usando el cliente del servicio de usuarios
     permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
     if not permissions or "delete_transaction" not in permissions:
-        logger.warning(f"El rol del usuario no tiene permiso para eliminar transacciones")
+        logger.warning("El rol del usuario no tiene permiso para eliminar transacciones")
         return create_response("error", "No tienes permiso para eliminar transacciones", status_code=403)
     
     # 8. Cambiar el estado de la transacción a 'Inactivo'

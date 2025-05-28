@@ -71,7 +71,7 @@ def generate_financial_report(request: FinancialReportRequest, user, db: Session
     # Verificar permiso 'read_financial_report' usando el cliente de usuarios
     permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
     if "read_financial_report" not in permissions:
-        logger.warning(f"El rol del usuario no tiene permiso para ver reportes financieros")
+        logger.warning("El rol del usuario no tiene permiso para ver reportes financieros")
         return create_response("error", "No tienes permiso para ver reportes financieros", status_code=403)
     
     # 5. Obtener el estado 'Activo' para Transactions

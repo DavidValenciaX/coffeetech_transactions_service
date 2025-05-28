@@ -4,7 +4,6 @@ from models.models import (
 )
 from utils.response import session_token_invalid_response, create_response
 from utils.state import get_transaction_state
-from fastapi.encoders import jsonable_encoder
 from domain.schemas import TransactionResponse, UpdateTransactionRequest
 from adapters.user_client import verify_session_token, get_role_permissions_for_user_role
 from adapters.farm_client import get_user_role_farm_state_by_name, get_user_role_farm, verify_plot
@@ -73,7 +72,7 @@ def edit_transaction_use_case(request: UpdateTransactionRequest, session_token: 
     # 6. Verificar permiso 'edit_transaction' usando el cliente del servicio de usuarios
     permissions = get_role_permissions_for_user_role(user_role_farm.user_role_id)
     if not permissions or "edit_transaction" not in permissions:
-        logger.warning(f"El rol del usuario no tiene permiso para editar transacciones")
+        logger.warning("El rol del usuario no tiene permiso para editar transacciones")
         return create_response("error", "No tienes permiso para editar transacciones", status_code=403)
     
     # 7. Realizar las actualizaciones permitidas
