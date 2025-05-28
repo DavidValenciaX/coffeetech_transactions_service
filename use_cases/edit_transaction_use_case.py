@@ -90,9 +90,6 @@ def edit_transaction_use_case(request: UpdateTransactionRequest, session_token: 
 
         # Actualizar la descripción si se proporciona
         if request.description is not None:
-            # if len(request.description) > 255:
-            #     logger.warning("La descripción excede los 255 caracteres")
-            #     return create_response("error", "La descripción no puede exceder los 255 caracteres", status_code=400)
             transaction.description = request.description
         
         # Actualizar el valor si se proporciona
