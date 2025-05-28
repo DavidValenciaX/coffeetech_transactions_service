@@ -26,12 +26,24 @@ dependencies = [
     "uvicorn>=0.34.2",
 ]
 
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["domain", "endpoints", "models", "use_cases", "utils", "adapters"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py"]
+pythonpath = ["."]
+python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 addopts = [
+    "--strict-markers",
+    "--strict-config",
     "--verbose",
     "--tb=short",
     "--cov=use_cases",
@@ -42,7 +54,18 @@ addopts = [
     "--cov=utils",
     "--cov-report=html",
     "--cov-report=term-missing",
+    "--cov-report=xml",
     "--cov-fail-under=80"
 ]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+omit = [
+    "tests/*",
+    ".venv/*",
+    "__pycache__/*"
+]
