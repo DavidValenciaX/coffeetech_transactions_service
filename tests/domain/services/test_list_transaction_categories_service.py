@@ -3,7 +3,7 @@ Tests para list_transaction_categories_use_case.py
 """
 from unittest.mock import Mock
 
-from use_cases.list_transaction_categories_use_case import list_transaction_categories_use_case
+from domain.services.list_transaction_categories_service import list_transaction_categories_use_case
 from models.models import TransactionCategories
 
 

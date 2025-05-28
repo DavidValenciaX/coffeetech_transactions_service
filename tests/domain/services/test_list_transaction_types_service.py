@@ -21,7 +21,7 @@ from unittest.mock import Mock
 import pytest
 import json
 
-from use_cases.list_transaction_types_use_case import list_transaction_types_use_case
+from domain.services.list_transaction_types_service import list_transaction_types_use_case
 from models.models import TransactionTypes
 
 
