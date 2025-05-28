@@ -239,7 +239,7 @@ class TestGetFarmById:
         assert isinstance(result, FarmDetailResponse)
         assert result.farm_id == 456
         assert result.name == "Farm Test"
-        assert result.area == 100.5
+        assert result.area == pytest.approx(100.5)
         assert result.area_unit == "hectares"
         assert result.farm_state == "Activo"
         
@@ -633,7 +633,6 @@ class TestIntegration:
         # Arrange
         mock_time.side_effect = [0.0, 1.0, 2.0, 3.5]  # Multiple calls
         plot_id = 123
-        farm_id = 456
         
         # First call - verify plot
         plot_data = {
@@ -847,7 +846,7 @@ class TestTimeLogging:
         verify_plot(plot_id)
         
         # Assert warning log
-        mock_logger.warning.assert_called_with(f"Error verificando lote: Plot is inactive")
+        mock_logger.warning.assert_called_with("Error verificando lote: Plot is inactive")
 
 
 class TestAdditionalEdgeCases:

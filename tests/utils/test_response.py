@@ -36,7 +36,7 @@ class TestProcessDataForJson:
         """Test procesamiento de Decimal"""
         decimal_value = Decimal("123.45")
         result = process_data_for_json(decimal_value)
-        assert result == 123.45
+        assert result == pytest.approx(123.45)
         assert isinstance(result, float)
     
     def test_process_datetime(self):

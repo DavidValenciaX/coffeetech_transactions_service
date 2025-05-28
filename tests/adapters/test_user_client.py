@@ -721,7 +721,7 @@ class TestConstants:
     
     def test_default_timeout(self):
         """Test DEFAULT_TIMEOUT value"""
-        assert DEFAULT_TIMEOUT == 10.0
+        assert abs(DEFAULT_TIMEOUT - 10.0) < 1e-9
 
 
 # Integration test class for testing with actual HTTP mocking
