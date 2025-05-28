@@ -47,7 +47,7 @@ class TransactionCategoryResponse(BaseModel):
 
 # Financial Report Schemas
 class FinancialReportRequest(BaseModel):
-    plot_ids: List[int] = Field(..., description="Lista de IDs de lotes (debe contener al menos un ID)", min_items=1)
+    plot_ids: List[int] = Field(..., description="Lista de IDs de lotes (debe contener al menos un ID)", min_length=1)
     fechaInicio: date = Field(..., description="Fecha de inicio del periodo")
     fechaFin: date = Field(..., description="Fecha de fin del periodo")
     include_transaction_history: bool = Field(False, description="Indica si se debe incluir el historial de transacciones")
